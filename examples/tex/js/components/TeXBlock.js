@@ -110,8 +110,6 @@ export default class TeXBlock extends React.Component {
     };
 
     this._save = (e) => {
-      console.log('_save');
-      console.log(e);
       e.stopPropagation();
       var entityKey = this.props.block.getEntityAt(0);
       Entity.mergeData(entityKey, {content: this.state.texValue});
