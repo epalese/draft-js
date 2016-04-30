@@ -16,7 +16,7 @@
 
 import katex from 'katex';
 import React from 'react';
-import {Entity} from 'draft-js';
+import {Editor, EditorState, ContentState, Entity} from 'draft-js';
 
 class KatexOutput extends React.Component {
   constructor(props) {
@@ -61,23 +61,40 @@ class KatexOutput extends React.Component {
 export default class TeXBlock extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {editMode: false};
-
-    this._onClick = () => {
-      if (this.state.editMode) {
-        return;
-      }
-
-      this.setState({
-        editMode: true,
-        texValue: this._getValue(),
-      }, () => {
-        this._startEdit();
-      });
+    this.state = {
+      editMode: false,
+      visible: true,
+      texValue: this._getValue(),
+      editorState: EditorState.createWithContent(
+        ContentState.createFromText(this._getValue())
+      )
     };
 
-    this._onValueChange = evt => {
-      var value = evt.target.value;
+    this._onClick = () => {
+      // e.stopPropagation();
+      if (this.state.visible) {
+        if (this.state.editMode) {
+          return;
+        } else {
+          this.setState({
+            editMode: true,
+            texValue: this._getValue()
+          }, () => {
+            this._startEdit();
+            setTimeout(() => this.refs.editor2.focus(), 0);
+          });
+        }
+      } else {
+        this.setState({
+          editMode: false,
+          visible: true,
+          texValue: this._getValue()
+        });
+      }
+    };
+
+    this._onEditorChange = editorState => {
+      var value = editorState.getCurrentContent().getPlainText();
       var invalid = false;
       try {
         katex.__parse(value);
@@ -87,17 +104,21 @@ export default class TeXBlock extends React.Component {
         this.setState({
           invalidTeX: invalid,
           texValue: value,
+          editorState: editorState
         });
       }
     };
 
-    this._save = () => {
+    this._save = (e) => {
+      console.log('_save');
+      console.log(e);
+      e.stopPropagation();
       var entityKey = this.props.block.getEntityAt(0);
       Entity.mergeData(entityKey, {content: this.state.texValue});
       this.setState({
         invalidTeX: false,
-        editMode: false,
-        texValue: null,
+        visible: false,
+        editMode: false
       }, this._finishEdit);
     };
 
@@ -110,6 +131,17 @@ export default class TeXBlock extends React.Component {
     this._finishEdit = () => {
       this.props.blockProps.onFinishEdit(this.props.block.getKey());
     };
+
+    this._onBlur = () => {
+      if (this.state.editMode) {
+        var entityKey = this.props.block.getEntityAt(0);
+        Entity.mergeData(entityKey, {content: this.state.texValue});
+        this.setState({
+          invalidTeX: false,
+          editMode: false
+        }, this._finishEdit);
+      }
+    };
   }
 
   _getValue() {
@@ -120,9 +152,16 @@ export default class TeXBlock extends React.Component {
 
   render() {
     var texContent = null;
+    var texContentClassName = '';
+    var texPanelClassName = 'TeXEditor-panel TeXEditor-activeTeX';
+    var buttonClass = 'TeXEditor-saveButton';
+
     if (this.state.editMode) {
+      texContentClassName = 'TeXEditor-activeTeX';
+      texPanelClassName = 'TeXEditor-panel';
       if (this.state.invalidTeX) {
         texContent = '';
+        buttonClass += ' TeXEditor-invalidButton';
       } else {
         texContent = this.state.texValue;
       }
@@ -130,26 +169,21 @@ export default class TeXBlock extends React.Component {
       texContent = this._getValue();
     }
 
-    var className = 'TeXEditor-tex';
-    if (this.state.editMode) {
-      className += ' TeXEditor-activeTeX';
-    }
-
-    var editPanel = null;
-    if (this.state.editMode) {
-      var buttonClass = 'TeXEditor-saveButton';
-      if (this.state.invalidTeX) {
-        buttonClass += ' TeXEditor-invalidButton';
-      }
-
-      editPanel =
-        <div className="TeXEditor-panel">
-          <textarea
-            className="TeXEditor-texValue"
-            onChange={this._onValueChange}
-            ref="textarea"
-            value={this.state.texValue}
-          />
+    var editPanel =
+        <div className={texPanelClassName}
+          style={
+            this.state.visible ?
+            {} :
+            {display: 'none'}
+          }>
+          <Editor
+              className="TeXEditor-texValue"
+              editorState={this.state.editorState}
+              onChange={this._onEditorChange}
+              placeholder="Start a document..."
+              readOnly={!this.state.editMode}
+              ref="editor2"
+            />
           <div className="TeXEditor-buttons">
             <button
               className={buttonClass}
@@ -162,11 +196,13 @@ export default class TeXBlock extends React.Component {
             </button>
           </div>
         </div>;
-    }
 
     return (
-      <div className={className}>
-        <KatexOutput content={texContent} onClick={this._onClick} />
+      <div onClick={this._onClick} onBlur={this._onBlur}
+          className="TeXEditor-tex">
+        <div className={texContentClassName}>
+          <KatexOutput content={texContent} />
+        </div>
         {editPanel}
       </div>
     );

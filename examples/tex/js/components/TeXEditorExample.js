@@ -56,7 +56,6 @@ export default class TeXEditorExample extends React.Component {
 
     this._focus = () => this.refs.editor.focus();
     this._onChange = (editorState) => this.setState({editorState});
-
     this._handleKeyCommand = command => {
       var {editorState} = this.state;
       var newState = RichUtils.handleKeyCommand(editorState, command);
@@ -87,6 +86,29 @@ export default class TeXEditorExample extends React.Component {
    * While editing TeX, set the Draft editor to read-only. This allows us to
    * have a textarea within the DOM.
    */
+  // render() {
+  //   return (
+  //     <div className="TexEditor-container">
+  //       <div className="TeXEditor-root">
+  //         <div className="TeXEditor-editor" onClick={this._focus}>
+  //           <Editor
+  //             blockRendererFn={this._blockRenderer}
+  //             editorState={this.state.editorState}
+  //             handleKeyCommand={this._handleKeyCommand}
+  //             onChange={this._onChange}
+  //             placeholder="Start a document..."
+  //             readOnly={this.state.liveTeXEdits.count()}
+  //             ref="editor"
+  //             spellCheck={true}
+  //           />
+  //         </div>
+  //       </div>
+  //       <button onClick={this._insertTeX} className="TeXEditor-insert">
+  //         {'Insert new TeX'}
+  //       </button>
+  //     </div>
+  //   );
+  // }
   render() {
     return (
       <div className="TexEditor-container">
@@ -97,8 +119,8 @@ export default class TeXEditorExample extends React.Component {
               editorState={this.state.editorState}
               handleKeyCommand={this._handleKeyCommand}
               onChange={this._onChange}
-              placeholder="Start a document..."
               readOnly={this.state.liveTeXEdits.count()}
+              placeholder="Start a document..."
               ref="editor"
               spellCheck={true}
             />
